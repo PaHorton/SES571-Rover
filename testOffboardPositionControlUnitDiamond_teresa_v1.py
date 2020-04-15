@@ -4,31 +4,18 @@ testing offboard positon control with a simple takeoff script
 
 import rospy
 from mavros_msgs.msg import State
-from mavros_msgs.msg import *
-from mavros_msgs.srv import *
 from geometry_msgs.msg import PoseStamped, Point, Quaternion
 import math
 import numpy
 
 
 
-class stateMoniter:
-    def __init__(self):
-        self.state = State()
-        # Instantiate a setpoints message
-        self.sp = PositionTarget()
-
-        # set the flag to use position setpoints and yaw angle
-        self.sp.type_mask = int('010111111000', 2)
-        
-    def stateCb(self, msg):
-        self.state = msg
 
 
 class OffbPosCtl:
     curr_pose = PoseStamped()
     waypointIndex = 0
-    distThreshold = .5
+    distThreshold = .3
     sim_ctr = 1
 
     des_pose = PoseStamped()
@@ -38,10 +25,10 @@ class OffbPosCtl:
     #                           [0, 0, 2, 0, 0, 0]
     #                           ])
     SIDE = 50
-    locations = numpy.matrix([[10, 10, 0, 0, 0, -0.48717451, -0.87330464],
-                              [10, -10,0, 0, 0, 0, 1],
-                              [-10, -10, 0, 0.,  0.,  0.99902148, -0.04422762],
-                              [-10, 10, 0, 0, 0, 0, 0],
+    locations = numpy.matrix([[10, -10, 0, 0, 0, -0.48717451, -0.87330464],
+                              [10, 10, 0, 0, 0, 0, 1],
+                              [-10, 10, 0, 0.,  0.,  0.99902148, -0.04422762],
+                              [-10, -10, 0, 0, 0, 0, 0],
                               ])
 
 
@@ -68,7 +55,7 @@ class OffbPosCtl:
                 des_x = self.locations[self.waypointIndex, 0]
                 des_y = self.locations[self.waypointIndex, 1]
                 des_z = self.locations[self.waypointIndex, 2]
-		print des_x, des_y, des_z, des_x
+		print des_x, des_y, des_z
                 self.des_pose.pose.position.x = des_x
                 self.des_pose.pose.position.y = des_y
                 self.des_pose.pose.position.z = des_z
@@ -88,22 +75,7 @@ class OffbPosCtl:
 
                 # print dist, curr_x, curr_y, curr_z, self.waypointIndex
             pose_pub.publish(self.des_pose)
-
-	    
-            
-    	     # Switching the state to auto mode
-    	    stateMt = stateMoniter()
-    	    while not stateMt.state.mode=="OFFBOARD":
-            	rospy.wait_for_service('mavros/set_mode')
-            	try:
-                	# setModeService = rospy.ServiceProxy('mavros/set_mode', mavros_msgs.srv.set_mode.request.custom_mode)
-                	setModeService = rospy.ServiceProxy('mavros/set_mode', mavros_msgs.srv.SetMode)
-                	setModeService(custom_mode="OFFBOARD")
-           	except rospy.ServiceException, e:
-                	print "Service takeoff call failed: %s"%e
-        	rate.sleep()
-        	print "OFFBOARD"
-
+            rate.sleep()
 
     def copy_pose(self, pose):
         pt = pose.pose.position
